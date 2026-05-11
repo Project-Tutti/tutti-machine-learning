@@ -142,7 +142,7 @@ def build_fim_chunk(bars_full, bars_no_target, target_program, chunk_start, n_ba
     mid_end = min(chunk_start + 8, n_bars)
     pre_start = max(0, mid_start - 8)
     pre_end = mid_start
-    suf_start = mid_end
+    suf_start = mid_start
     suf_end = min(mid_end + 8, n_bars)
     
     header = [vocab["PIECE_START"], genre_tok, vocab[f"TARGET_{target_program}"]]
@@ -226,7 +226,8 @@ def _worker(entry):
                         "chunk_start": int(chunk_start)
                     })
         return samples
-    except Exception:
+    except Exception as e:
+        print(f"Error processing {entry.get('path', 'unknown')}: {e}")
         return []
 
 def run_preprocess(jsonl_in, save_dir, vocab):
@@ -244,16 +245,21 @@ def run_preprocess(jsonl_in, save_dir, vocab):
     def process_split(split_entries, split_name):
         out_path = os.path.join(save_dir, f"{split_name}.jsonl")
         total_chunks = 0
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count(), initializer=_init_worker, initargs=(vocab,)) as pool:
+        with multiprocessing.Pool(
+            processes=16, 
+            initializer=_init_worker, 
+            initargs=(vocab,),
+            maxtasksperchild=50
+        ) as pool:
             with open(out_path, 'w', encoding='utf-8') as f_out:
-                for results in tqdm(pool.imap_unordered(_worker, split_entries), total=len(split_entries), desc=split_name):
+                for results in tqdm(pool.imap_unordered(_worker, split_entries, chunksize=10), total=len(split_entries), desc=split_name):
                     for r in results:
                         f_out.write(json.dumps(r) + '\n')
                         total_chunks += 1
         print(f"Saved {total_chunks} chunks to {out_path}")
         
-    # process_split(val_entries, "val") # Already completed
-    process_split(train_entries, "train")
+    process_split(val_entries, "val")
+    # process_split(train_entries, "train")
 
 if __name__ == "__main__":
     vocab = build_v6_vocab()
