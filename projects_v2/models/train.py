@@ -72,13 +72,23 @@ def load_model(vocab):
         )
         print("✅ FlashAttention-2 활성화")
     except Exception:
-        model = AutoModelForCausalLM.from_pretrained(
-            MODEL_NAME,
-            config=config,
-            torch_dtype=torch.bfloat16,
-            ignore_mismatched_sizes=True,
-        )
-        print("⚠️ FlashAttention-2 미지원, 기본 attention 사용")
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                MODEL_NAME,
+                config=config,
+                torch_dtype=torch.bfloat16,
+                ignore_mismatched_sizes=True,
+                attn_implementation="sdpa",
+            )
+            print("⚡ FlashAttention-2 미지원, PyTorch 고속 SDPA(Scaled Dot-Product Attention) 활성화")
+        except Exception:
+            model = AutoModelForCausalLM.from_pretrained(
+                MODEL_NAME,
+                config=config,
+                torch_dtype=torch.bfloat16,
+                ignore_mismatched_sizes=True,
+            )
+            print("⚠️ FlashAttention-2 및 SDPA 미지원, 기본 attention 사용")
 
     model.config.use_cache = False
 
@@ -135,8 +145,8 @@ def main():
     training_args = TrainingArguments(
         output_dir=CKPT_DIR,
 
-        # 배치 (효율 batch = 4 × 3 GPU × 8 = 96)
-        per_device_train_batch_size=12,
+        # 배치 (효율 batch = 24 × 3 GPU × 4 = 288)
+        per_device_train_batch_size=24,
         gradient_accumulation_steps=4,
 
         # 옵티마이저
