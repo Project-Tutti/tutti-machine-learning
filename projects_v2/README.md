@@ -16,6 +16,8 @@
 
 ```
 projects_v2/
+├── docs/
+│   └── v6_pipeline_hybrid_upgrade_guide.md
 ├── data/
 │   ├── dataset.py              # 가중 샘플링이 있는 Memmap 기반 데이터셋 로더
 │   ├── vocab_v6.py             # 향상된 V6 어휘 빌더
@@ -62,8 +64,8 @@ CUDA_VISIBLE_DEVICES=1,2,3 torchrun --nproc_per_node=3 models/train.py
 VOCAB_SIZE = 645
 SEQ_LEN = 8192  # v1보다 긴 시퀀스
 MODEL_NAME = "Qwen/Qwen2.5-0.5B"
-BATCH_SIZE = 16 (디바이스당)
-LEARNING_RATE = 5e-5
+BATCH_SIZE = 24 (디바이스당)
+LEARNING_RATE = 1e-3 # 전이 학습을 위해서 lr을 낮춰서 수렴하도록 함
 ```
 
 ### `data/dataset.py`
@@ -357,6 +359,9 @@ tail -f train_logs.jsonl | grep loss
 - **LMD 데이터셋**: [Lakh MIDI Dataset](https://www.karolpiczak.com/lmd/)
 - **분산 학습**: Hugging Face [Transformers + Accelerate](https://huggingface.co/docs/transformers/training)
 - **FlashAttention**: [FlashAttention-2](https://github.com/Dao-AILab/flash-attention)
+
+## 📚 Documentation
+* [V6 Pipeline.20260512](./v6_pipeline_hybrid_upgrade_guide.md): 이번 업데이트에서 개선된 전처리 및 학습 파이프라인 가이드입니다.
 
 ## 📄 라이선스
 
